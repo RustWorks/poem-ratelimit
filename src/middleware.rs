@@ -5,7 +5,8 @@ use redis::Script;
 
 use crate::{key, Config, ConfigRecord, RateLimitError};
 
-/// Rate Limiter Middleware
+/// Rate limit middleware
+/// 
 /// This middleware is used to limit the number of requests per second.
 /// A sliding window script is invoked when a request comes in. Redis is used to store data.
 pub struct RateLimiter<C> {
@@ -14,6 +15,7 @@ pub struct RateLimiter<C> {
 }
 
 impl<C: ConnectionLike + Clone + Sync + Send> RateLimiter<C> {
+    /// Create a RateLimiter instance with Redis connection and config
     pub fn new(connection: C, config: Config) -> Self {
         RateLimiter { connection, config }
     }
@@ -53,6 +55,7 @@ where
     }
 }
 
+/// Rate limit implementation
 pub struct RateLimiterImpl<C, E> {
     endpoint: E,
     redis: C,
@@ -99,11 +102,13 @@ where
         if let Some(global_config) = &self.config.global {
             let key = key::global();
             self.check(&key, global_config).await?;
-        } else if let Some(ip_config) = &self.config.ip {
+        }
+        if let Some(ip_config) = &self.config.ip {
             let remote_addr = req.remote_addr().clone();
             let key = key::ip(&remote_addr);
             self.check(&key, ip_config).await?;
-        } else if let Some(route_config) = &self.config.route {
+        }
+        if let Some(route_config) = &self.config.route {
             let uri = req.uri();
             if let Some(route_config_record) = route_config.get(uri) {
                 let key = key::route(uri);
